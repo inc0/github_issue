@@ -1,0 +1,34 @@
+---
+version: '3'
+services:
+  tf-master:
+    image: "inc0/issues"
+    network_mode: "host"
+    ports:
+      - "22222:22222"
+    restart: "no"
+    volumes:
+      - "/opt/data/datasets/github:/data"
+    environment:
+        TF_CONFIG: '{"cluster":{"master":["localhost:22222"],"ps":["localhost:22223"],"worker":["localhost:22224"]},"task":{"type":"master","index":0},"model_dir":"/data/models/"}'
+  tf-ps:
+    image: "inc0/issues"
+    network_mode: "host"
+    ports:
+      - "22223:22223"
+    restart: "no"
+    volumes:
+      - "/opt/data/datasets/github:/data"
+    environment:
+        TF_CONFIG: '{"cluster":{"master":["localhost:22222"],"ps":["localhost:22223"],"worker":["localhost:22224"]},"task":{"type":"ps","index":0},"model_dir":"/data/models/"}'
+  tf-worker:
+    image: "inc0/issues"
+    network_mode: "host"
+    #    command: ["sleep", "9999999"]
+    ports:
+      - "22224:22224"
+    restart: "no"
+    volumes:
+      - "/opt/data/datasets/github:/data"
+    environment:
+        TF_CONFIG: '{"cluster":{"master":["localhost:22222"],"ps":["localhost:22223"],"worker":["localhost:22224"]},"task":{"type":"worker","index":0},"model_dir":"/data/models/"}'

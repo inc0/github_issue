@@ -1,29 +1,52 @@
-# Needs storageclass nfs, or really any storageclass compatible with RWX
-# One way to get it is https://github.com/helm/charts/tree/master/stable/nfs-server-provisioner
 ---
-kind: PersistentVolumeClaim
-apiVersion: v1
+apiVersion: "kubeflow.org/v1alpha2"
+kind: TFJob
 metadata:
-  name: issues-pvc
+  name: github
 spec:
-  storageClassName: "nfs"
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 100Gi
-
-# Download files and save on pvc
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: downloader
-spec:
-  template:
-    spec:
-      containers:
-      - name: download
-        image: inc0/issues
-        command: ["/issues/download.sh"]
-      restartPolicy: Never
+  tfReplicaSpecs:
+    Master:
+      replicas: 1
+      template:
+        spec:
+          containers:
+          - name: tensorflow
+            image: inc0/issues
+            command: ["python", "/issues/train.py"]
+            volumeMounts:
+            - name: data
+              mountPath: "/data"
+          volumes:
+            - name: data
+              hostPath:
+                path: "/opt/data"
+    Worker:
+      replicas: 1
+      template:
+        spec:
+          containers:
+          - name: tensorflow
+            image: inc0/issues
+            command: ["python", "/issues/train.py"]
+            volumeMounts:
+            - name: data
+              mountPath: "/data"
+          volumes:
+            - name: data
+              hostPath:
+                path: "/opt/data"
+    PS:
+      replicas: 1
+      template:
+        spec:
+          containers:
+          - name: tensorflow
+            image: inc0/issues
+            command: ["python", "/issues/train.py"]
+            volumeMounts:
+            - name: data
+              mountPath: "/data"
+          volumes:
+            - name: data
+              hostPath:
+                path: "/opt/data"

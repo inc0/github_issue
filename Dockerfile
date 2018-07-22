@@ -4,3 +4,4 @@ RUN pip install ktext annoy sklearn nltk
 RUN mkdir /issues
 WORKDIR /issues
 COPY . /issues
+CMD python train.py

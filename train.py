@@ -1,7 +1,10 @@
 import pandas as pd
+import json
+import time
 import logging
 import glob
 import os
+import sys
 from ktext.preprocess import processor
 from sklearn.model_selection import train_test_split
 import dill as dpickle
@@ -10,14 +13,37 @@ import numpy as np
 from seq2seq_utils import load_decoder_inputs, load_encoder_inputs, load_text_processor
 import tensorflow as tf
 
-
 data_dir = "/data/"
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
+
+logger.warning("starting")
 
 data_file = data_dir + 'github_issues.csv'
 use_sample_data=True
+
+tf_config = os.environ.get('TF_CONFIG')
+
+tf_config_json = json.loads(tf_config)
+
+cluster = tf_config_json.get('cluster')
+job_name = tf_config_json.get('task', {}).get('type')
+task_index = tf_config_json.get('task', {}).get('index')
+
+if job_name == "ps":
+    cluster_spec = tf.train.ClusterSpec(cluster)
+    server = tf.train.Server(cluster_spec,
+                         job_name=job_name,
+                         task_index=task_index)
+
+    server.join()
+    sys.exit(0)
+
+
+print("-------------------job name-----------------")
+print(job_name)
+start_time = time.time()
 
 if not os.path.isfile(data_dir + "title_pp.dpkl"):
     if use_sample_data:
@@ -118,13 +144,14 @@ seq2seq_Model = tf.keras.Model([encoder_inputs, decoder_inputs], decoder_outputs
 
 seq2seq_Model.compile(optimizer=tf.keras.optimizers.Nadam(lr=0.001), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
+logger.debug("Finished keras model")
+
 estimator = tf.keras.estimator.model_to_estimator(keras_model=seq2seq_Model)
 
 def input_fn(dataset=None):
     return [encoder_input_data, decoder_input_data], np.expand_dims(decoder_target_data, -1)
 
-
-estimator.train(input_fn=input_fn, steps=20)
-result = estimator.evaluate(input_fn=input_fn, steps=1)
-print(result)
-
+train_spec = tf.estimator.TrainSpec(input_fn=input_fn, max_steps=20)
+eval_spec = tf.estimator.EvalSpec(input_fn=input_fn)
+tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+print(time.time() - start_time)
