@@ -1,7 +1,10 @@
-FROM gcr.io/kubeflow-images-public/tensorflow-1.8.0-notebook-cpu
+FROM python:3.6
 
-RUN pip install ktext annoy sklearn nltk
+RUN pip install --upgrade ktext annoy sklearn nltk tensorflow
+RUN pip install --upgrade matplotlib ipdb
+ENV DEBIAN_FRONTEND=noninteractive
 RUN mkdir /issues
 WORKDIR /issues
 COPY . /issues
+RUN mkdir /model
 CMD python train.py

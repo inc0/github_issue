@@ -1,4 +1,17 @@
 ---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: models
+spec:
+  storageClassName: "nfs"
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+
+---
 apiVersion: "kubeflow.org/v1alpha2"
 kind: TFJob
 metadata:
@@ -16,12 +29,17 @@ spec:
             volumeMounts:
             - name: data
               mountPath: "/data"
+            - name: models
+              mountPath: "/model"
           volumes:
             - name: data
               hostPath:
                 path: "/opt/data"
+            - name: models
+              persistentVolumeClaim:
+                claimName: models
     Worker:
-      replicas: 1
+      replicas: 3
       template:
         spec:
           containers:
@@ -31,10 +49,15 @@ spec:
             volumeMounts:
             - name: data
               mountPath: "/data"
+            - name: models
+              mountPath: "/model"
           volumes:
             - name: data
               hostPath:
                 path: "/opt/data"
+            - name: models
+              persistentVolumeClaim:
+                claimName: models
     PS:
       replicas: 1
       template:
@@ -46,7 +69,12 @@ spec:
             volumeMounts:
             - name: data
               mountPath: "/data"
+            - name: models
+              mountPath: "/model"
           volumes:
             - name: data
               hostPath:
                 path: "/opt/data"
+            - name: models
+              persistentVolumeClaim:
+                claimName: models

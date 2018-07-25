@@ -14,6 +14,7 @@ from seq2seq_utils import load_decoder_inputs, load_encoder_inputs, load_text_pr
 import tensorflow as tf
 
 data_dir = "/data/"
+models_dir = "/models/"
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -31,8 +32,8 @@ cluster = tf_config_json.get('cluster')
 job_name = tf_config_json.get('task', {}).get('type')
 task_index = tf_config_json.get('task', {}).get('index')
 
+cluster_spec = tf.train.ClusterSpec(cluster)
 if job_name == "ps":
-    cluster_spec = tf.train.ClusterSpec(cluster)
     server = tf.train.Server(cluster_spec,
                          job_name=job_name,
                          task_index=task_index)
@@ -40,9 +41,6 @@ if job_name == "ps":
     server.join()
     sys.exit(0)
 
-
-print("-------------------job name-----------------")
-print(job_name)
 start_time = time.time()
 
 if not os.path.isfile(data_dir + "title_pp.dpkl"):
@@ -129,7 +127,7 @@ dec_bn = tf.keras.layers.BatchNormalization(name='Decoder-Batchnorm-1')(dec_emb)
 decoder_gru = tf.keras.layers.GRU(latent_dim, return_state=True, return_sequences=True, name='Decoder-GRU')
 
 # FIXME: seems to be running into this https://github.com/keras-team/keras/issues/9761
-decoder_gru_output, _ = decoder_gru(dec_bn) # , initial_state=seq2seq_encoder_out)
+decoder_gru_output, _ = decoder_gru(dec_bn)  # , initial_state=seq2seq_encoder_out)
 x = tf.keras.layers.BatchNormalization(name='Decoder-Batchnorm-2')(decoder_gru_output)
 
 # Dense layer for prediction
@@ -139,19 +137,19 @@ decoder_outputs = decoder_dense(x)
 ########################
 #### Seq2Seq Model ####
 
-#seq2seq_decoder_out = decoder_model([decoder_inputs, seq2seq_encoder_out])
 seq2seq_Model = tf.keras.Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
 seq2seq_Model.compile(optimizer=tf.keras.optimizers.Nadam(lr=0.001), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-logger.debug("Finished keras model")
 
 estimator = tf.keras.estimator.model_to_estimator(keras_model=seq2seq_Model)
 
 def input_fn(dataset=None):
     return [encoder_input_data, decoder_input_data], np.expand_dims(decoder_target_data, -1)
 
-train_spec = tf.estimator.TrainSpec(input_fn=input_fn, max_steps=20)
+train_spec = tf.estimator.TrainSpec(input_fn=input_fn, max_steps=100)
 eval_spec = tf.estimator.EvalSpec(input_fn=input_fn)
-tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
-print(time.time() - start_time)
+
+result = tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+print(result)
+print("end time", time.time() - start_time)
