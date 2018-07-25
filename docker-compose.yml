@@ -9,6 +9,7 @@ services:
     restart: "no"
     volumes:
       - "/opt/data/datasets/github:/data"
+      - "/opt/data/datasets/github:/model"
     environment:
         TF_CONFIG: '{"cluster":{"master":["localhost:22222"],"ps":["localhost:22223"],"worker":["localhost:22224", "localhost:22225"]},"task":{"type":"master","index":0}}'
   tf-ps:
@@ -19,8 +20,8 @@ services:
     restart: "no"
     volumes:
       - "/opt/data/datasets/github:/data"
+      - "/opt/data/datasets/github:/model"
     environment:
-        TF_CONFIG: '{"cluster":{"master":["localhost:22222"],"ps":["localhost:22223"],"worker":["localhost:22224"]},"task":{"type":"ps","index":0},"model_dir":"/data/models/"}'
         TF_CONFIG: '{"cluster":{"master":["localhost:22222"],"ps":["localhost:22223"],"worker":["localhost:22224", "localhost:22225"]},"task":{"type":"ps","index":0}}'
   tf-worker-1:
     image: "inc0/issues"
@@ -30,6 +31,7 @@ services:
     restart: "no"
     volumes:
       - "/opt/data/datasets/github:/data"
+      - "/opt/data/datasets/github:/model"
     environment:
         TF_CONFIG: '{"cluster":{"master":["localhost:22222"],"ps":["localhost:22223"],"worker":["localhost:22224", "localhost:22225"]},"task":{"type":"worker","index":0}}'
   tf-worker-2:
@@ -40,5 +42,6 @@ services:
     restart: "no"
     volumes:
       - "/opt/data/datasets/github:/data"
+      - "/opt/data/datasets/github:/model"
     environment:
         TF_CONFIG: '{"cluster":{"master":["localhost:22222"],"ps":["localhost:22223"],"worker":["localhost:22224", "localhost:22225"]},"task":{"type":"worker","index":1}}'
