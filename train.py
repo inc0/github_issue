@@ -14,14 +14,14 @@ from seq2seq_utils import load_decoder_inputs, load_encoder_inputs, load_text_pr
 import tensorflow as tf
 
 data_dir = "/data/"
-models_dir = "/models/"
+model_dir = "/model/"
 
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 logger.warning("starting")
 
-data_file = data_dir + 'github_issues.csv'
+data_file = '/data/github_issues.csv'
 use_sample_data=True
 
 tf_config = os.environ.get('TF_CONFIG')
@@ -141,14 +141,17 @@ seq2seq_Model = tf.keras.Model([encoder_inputs, decoder_inputs], decoder_outputs
 
 seq2seq_Model.compile(optimizer=tf.keras.optimizers.Nadam(lr=0.001), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
+cfg = tf.estimator.RunConfig(session_config=tf.ConfigProto(log_device_placement=False))
 
-estimator = tf.keras.estimator.model_to_estimator(keras_model=seq2seq_Model)
+estimator = tf.keras.estimator.model_to_estimator(keras_model=seq2seq_Model, model_dir=model_dir, config=cfg)
 
 def input_fn(dataset=None):
+    with open("/model/batch", "a") as f:
+        f.write("{}-{} - {}\n".format(job_name, task_index, time.time()))
     return [encoder_input_data, decoder_input_data], np.expand_dims(decoder_target_data, -1)
 
-train_spec = tf.estimator.TrainSpec(input_fn=input_fn, max_steps=100)
-eval_spec = tf.estimator.EvalSpec(input_fn=input_fn)
+train_spec = tf.estimator.TrainSpec(input_fn=input_fn, max_steps=30)
+eval_spec = tf.estimator.EvalSpec(input_fn=input_fn, throttle_secs=10, steps=10)
 
 result = tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 print(result)

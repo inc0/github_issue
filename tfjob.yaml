@@ -39,7 +39,7 @@ spec:
               persistentVolumeClaim:
                 claimName: models
     Worker:
-      replicas: 3
+      replicas: 5
       template:
         spec:
           containers:
@@ -71,6 +71,8 @@ spec:
               mountPath: "/data"
             - name: models
               mountPath: "/model"
+            ports:
+            - containerPort: 6006
           volumes:
             - name: data
               hostPath:
