@@ -42,7 +42,7 @@ spec:
               persistentVolumeClaim:
                 claimName: models
     Worker:
-      replicas: 1
+      replicas: 20
       template:
         spec:
           containers:

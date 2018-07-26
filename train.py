@@ -13,7 +13,7 @@ import numpy as np
 from seq2seq_utils import load_decoder_inputs, load_encoder_inputs, load_text_processor
 import tensorflow as tf
 
-data_dir = "/data/"
+data_dir = "/model/"
 model_dir = "/model/"
 
 logger = logging.getLogger()
@@ -42,7 +42,6 @@ if job_name == "ps":
     server.join()
     sys.exit(0)
 
-start_time = time.time()
 
 if job_name == "master":
     if use_sample_data:
@@ -83,6 +82,8 @@ if job_name == "master":
     # Save the processed data
     np.save(data_dir + 'train_title_vecs.npy', train_title_vecs)
     np.save(data_dir + 'train_body_vecs.npy', train_body_vecs)
+else:
+    time.sleep(120)
 
 encoder_input_data, doc_length = load_encoder_inputs(data_dir + 'train_body_vecs.npy')
 decoder_input_data, decoder_target_data = load_decoder_inputs(data_dir + 'train_title_vecs.npy')
@@ -138,6 +139,7 @@ decoder_outputs = decoder_dense(x)
 ########################
 #### Seq2Seq Model ####
 
+start_time = time.time()
 seq2seq_Model = tf.keras.Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
 seq2seq_Model.compile(optimizer=tf.keras.optimizers.Nadam(lr=0.001), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
