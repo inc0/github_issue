@@ -24,7 +24,7 @@ logger.warning("starting")
 data_file = '/data/github_issues.csv'
 use_sample_data=True
 
-tf_config = os.environ.get('TF_CONFIG')
+tf_config = os.environ.get('TF_CONFIG', '{}')
 
 tf_config_json = json.loads(tf_config)
 
@@ -32,7 +32,8 @@ cluster = tf_config_json.get('cluster')
 job_name = tf_config_json.get('task', {}).get('type')
 task_index = tf_config_json.get('task', {}).get('index')
 
-cluster_spec = tf.train.ClusterSpec(cluster)
+if job_name:
+    cluster_spec = tf.train.ClusterSpec(cluster)
 if job_name == "ps":
     server = tf.train.Server(cluster_spec,
                          job_name=job_name,
@@ -43,7 +44,7 @@ if job_name == "ps":
 
 start_time = time.time()
 
-if not os.path.isfile(data_dir + "title_pp.dpkl"):
+if job_name == "master":
     if use_sample_data:
         training_data_size=2000
         traindf, testdf = train_test_split(pd.read_csv(data_file).sample(n=training_data_size),
@@ -145,10 +146,9 @@ cfg = tf.estimator.RunConfig(session_config=tf.ConfigProto(log_device_placement=
 
 estimator = tf.keras.estimator.model_to_estimator(keras_model=seq2seq_Model, model_dir=model_dir, config=cfg)
 
-def input_fn(dataset=None):
-    with open("/model/batch", "a") as f:
-        f.write("{}-{} - {}\n".format(job_name, task_index, time.time()))
-    return [encoder_input_data, decoder_input_data], np.expand_dims(decoder_target_data, -1)
+expanded = np.expand_dims(decoder_target_data, -1)
+input_fn = tf.estimator.inputs.numpy_input_fn(
+        x={'Encoder-Input': encoder_input_data, 'Decoder-Input': decoder_input_data}, y=expanded, shuffle=False)
 
 train_spec = tf.estimator.TrainSpec(input_fn=input_fn, max_steps=30)
 eval_spec = tf.estimator.EvalSpec(input_fn=input_fn, throttle_secs=10, steps=10)

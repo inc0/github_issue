@@ -1,3 +1,6 @@
+# You will need NFS storage class, or any other ReadWriteMany storageclass
+# Quick and easy way to get it is https://github.com/helm/charts/tree/master/stable/nfs-server-provisioner
+
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -39,7 +42,7 @@ spec:
               persistentVolumeClaim:
                 claimName: models
     Worker:
-      replicas: 5
+      replicas: 1
       template:
         spec:
           containers:
